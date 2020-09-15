@@ -1,0 +1,4 @@
+*.ics
+venv/*
+events/*.ics
+test_cal.py
