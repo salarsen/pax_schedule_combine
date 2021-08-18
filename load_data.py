@@ -17,7 +17,6 @@ if __name__ == '__main__':
         # conn = pymongo.MongoClient(uri)
         myclient = pymongo.MongoClient("mongodb://localhost:27017/")
         mydb = myclient["pax_events"]
-        mycol = mydb["events"]
         logging.info("Connected to MongoDB")
     except Exception as e:
         logging.info(f'Error: {e}')
@@ -50,6 +49,13 @@ if __name__ == '__main__':
         
         # sys.exit()        
         event_count = 0
+        mycol = mydb["shows"]
+        mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'event_ids' : []}
+        y = mycol.insert_one(mydict)
+
+        logging.info(y.inserted_id)
+        
+        mycol = mydb["events"]
         x = mycol.insert_many(data['schedules'])
         logging.info(x.inserted_ids)
         for event in x.inserted_ids:
@@ -57,11 +63,24 @@ if __name__ == '__main__':
                 { '_id' : event },
                 {
                     '$set' : {
-                        'event_name' : "PAX East Online 2021",
-                        'event_id' : '18792'
+                        'show_id' : y.inserted_id,
                     }
                 
                 })
+        
+        show_timezone = "EST"
+        start_date = ""
+        end_date = ""
+        
+        mycol = mydb["shows"]
+        mycol.update_one(
+            { '_id' : y.inserted_id },
+            {
+                '$set' : {
+                    'event_ids' : x.inserted_ids,
+                }
+            }
+        )
         # for event in data['schedules']:
         #     print(event)
 
