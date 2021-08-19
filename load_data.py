@@ -1,5 +1,7 @@
 import pymongo
 import logging, sys, json, requests
+from datetime import datetime
+from pytz import timezone
 
 if __name__ == '__main__':
     
@@ -49,38 +51,48 @@ if __name__ == '__main__':
         
         # sys.exit()        
         event_count = 0
-        mycol = mydb["shows"]
-        mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'event_ids' : []}
-        y = mycol.insert_one(mydict)
+        # mycol = mydb["shows"]
+        # mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'event_ids' : []}
+        # y = mycol.insert_one(mydict)
 
-        logging.info(y.inserted_id)
+        # logging.info(y.inserted_id)
         
-        mycol = mydb["events"]
-        x = mycol.insert_many(data['schedules'])
-        logging.info(x.inserted_ids)
-        for event in x.inserted_ids:
-            mycol.update_one(
-                { '_id' : event },
-                {
-                    '$set' : {
-                        'show_id' : y.inserted_id,
-                    }
+        # mycol = mydb["events"]
+        # x = mycol.insert_many(data['schedules'])
+        # logging.info(x.inserted_ids)
+        # for event in x.inserted_ids:
+        #     mycol.update_one(
+        #         { '_id' : event },
+        #         {
+        #             '$set' : {
+        #                 'show_id' : y.inserted_id,
+        #             }
                 
-                })
+        #         })
         
         show_timezone = "EST"
+        for event in data["schedules"]:
+            # print(f'{event["start_time"]} - { type(event["start_time"])}')
+            datetime_obj = datetime.strptime(event["start_time"],"%Y-%m-%d %H:%M:%S")
+            print(f"Before: {datetime_obj}")
+            eastern = timezone("EST")
+            # print(eastern)
+            datetime_obj = datetime_obj.replace(tzinfo=eastern)
+            print(f"After: {datetime_obj}")
+            print(datetime(datetime_obj.year, datetime_obj.month))
+            # print(datetime_obj.strftime('%Y-%m-%dT%H:%M:%SZ'))
         start_date = ""
         end_date = ""
         
-        mycol = mydb["shows"]
-        mycol.update_one(
-            { '_id' : y.inserted_id },
-            {
-                '$set' : {
-                    'event_ids' : x.inserted_ids,
-                }
-            }
-        )
+        # mycol = mydb["shows"]
+        # mycol.update_one(
+        #     { '_id' : y.inserted_id },
+        #     {
+        #         '$set' : {
+        #             'event_ids' : x.inserted_ids,
+        #         }
+        #     }
+        # )
         # for event in data['schedules']:
         #     print(event)
 
