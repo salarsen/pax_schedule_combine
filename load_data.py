@@ -3,6 +3,15 @@ import logging, sys, json, requests
 from datetime import date, datetime
 from pytz import timezone
 from dateutil import tz
+import os
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
+DB_USER = os.environ.get("DB_USER")
+DB_PWD = os.environ.get("DB_PWD")
+DB_IP = os.environ.get("DB_IP")
+DB_PORT = os.environ.get("DB_PORT")
 
 def convert_time(mytime):
     from_zone = tz.gettz('US/Eastern')
@@ -29,7 +38,8 @@ if __name__ == '__main__':
 
         # uri = "mongodb://{}:{}@{}:{}/{}?authSource=admin".format(MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT, MONGO_DB)
         # conn = pymongo.MongoClient(uri)
-        myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        # myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        myclient = pymongo.MongoClient(f"mongodb://{DB_USER}:{DB_PWD}@{DB_IP}:{DB_PORT}/pax_events")
         mydb = myclient["pax_events"]
         logging.info("Connected to MongoDB")
     except Exception as e:
