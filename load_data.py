@@ -13,6 +13,8 @@ DB_PWD = os.environ.get("DB_PWD")
 DB_IP = os.environ.get("DB_IP")
 DB_PORT = os.environ.get("DB_PORT")
 
+fromTimezone = 'US/Eastern'
+
 def convert_time(mytime):
     from_zone = tz.gettz('US/Eastern')
     to_zone = tz.gettz('UTC')
@@ -72,9 +74,12 @@ if __name__ == '__main__':
 
         start = datetime.now()
         end = datetime.now()
+        locations = []
 
         i = 0
         for event in data["schedules"]:
+            if event["location"] not in locations:
+                locations.append(event["location"])
             # print(f'{event["start_time"]} - { type(event["start_time"])}')
             datetime_start = datetime.strptime(event["start_time"],"%Y-%m-%d %H:%M:%S")
             datetime_end = datetime.strptime(event["end_time"],"%Y-%m-%d %H:%M:%S")
@@ -115,9 +120,11 @@ if __name__ == '__main__':
         # sys.exit()        
         event_count = 0
         mycol = mydb["shows"]
-
+        location_arr = []
+        for location in locations:
+            location_arr.append({ 'location': location, 'nickname': ''})
         ## set show values
-        mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'active': False, 'start_date': str(start.isoformat()) + "Z", 'end_date' : str(end.isoformat()) + "Z", 'event_ids' : []}
+        mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'active': False, 'start_date': str(start.isoformat()) + "Z", 'end_date' : str(end.isoformat()) + "Z", 'default_timezone': fromTimezone, 'locations': location_arr, 'event_ids' : []}
         y = mycol.insert_one(mydict)
 
         logging.info(y.inserted_id)
