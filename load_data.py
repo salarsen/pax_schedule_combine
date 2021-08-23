@@ -91,10 +91,12 @@ if __name__ == '__main__':
             # print(f"After: {datetime_obj}")
             start_conversion = convert_time(datetime_start)
             print(f"1) {event['start_time']}")
-            event["start_time"] = str(start_conversion.isoformat()) + "Z" 
+            # event["start_time"] = str(start_conversion.isoformat()) + "Z"
+            event["start_time"] = start_conversion
             print(f"2) {event['start_time']}")
             end_conversion = convert_time(datetime_end)
-            event["end_time"] = str(end_conversion.isoformat()) + "Z"
+            # event["end_time"] = str(end_conversion.isoformat()) + "Z"
+            event["end_time"] = end_conversion
             if i == 0:
                 start = start_conversion
                 end = end_conversion
@@ -124,7 +126,19 @@ if __name__ == '__main__':
         for location in locations:
             location_arr.append({ 'location': location, 'nickname': ''})
         ## set show values
-        mydict = { 'show_id' : data["event_id"], 'event_name' : data["event_name"], 'event_slug' : data["event_slug"], 'active': False, 'start_date': str(start.isoformat()) + "Z", 'end_date' : str(end.isoformat()) + "Z", 'default_timezone': fromTimezone, 'locations': location_arr, 'event_ids' : []}
+        mydict = {
+            'show_id' : data["event_id"],
+            'event_name' : data["event_name"],
+            'event_slug' : data["event_slug"],
+            'active': False,
+            # 'start_date': str(start.isoformat()) + "Z",
+            'start_date': start,
+            # 'end_date' : str(end.isoformat()) + "Z",
+            'end_date' : end,
+            'default_timezone': fromTimezone,
+            'locations': location_arr,
+            '_events' : []
+        }
         y = mycol.insert_one(mydict)
 
         logging.info(y.inserted_id)
@@ -139,7 +153,7 @@ if __name__ == '__main__':
                 { '_id' : event },
                 {
                     '$set' : {
-                        'show_id' : y.inserted_id,
+                        '_show' : y.inserted_id,
                     }
                 
                 })
@@ -151,7 +165,7 @@ if __name__ == '__main__':
             { '_id' : y.inserted_id },
             {
                 '$set' : {
-                    'event_ids' : x.inserted_ids,
+                    '_events' : x.inserted_ids,
                 }
             }
         )
