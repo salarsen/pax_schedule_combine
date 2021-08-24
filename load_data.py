@@ -83,6 +83,8 @@ if __name__ == '__main__':
             # print(f'{event["start_time"]} - { type(event["start_time"])}')
             datetime_start = datetime.strptime(event["start_time"],"%Y-%m-%d %H:%M:%S")
             datetime_end = datetime.strptime(event["end_time"],"%Y-%m-%d %H:%M:%S")
+            print(f"{datetime_start} to {datetime_end} = {(datetime_end - datetime_start).seconds}")
+            print(((datetime_end - datetime_start).seconds / 60)/15)
             # print(f"Before: {datetime_obj}")
             eastern = timezone("EST")
             # print(eastern)
@@ -90,18 +92,18 @@ if __name__ == '__main__':
             datetime_end = datetime_end.replace(tzinfo=eastern)
             # print(f"After: {datetime_obj}")
             start_conversion = convert_time(datetime_start)
-            print(f"1) {event['start_time']}")
+            # print(f"1) {event['start_time']}")
             # event["start_time"] = str(start_conversion.isoformat()) + "Z"
             event["start_time"] = start_conversion
-            print(f"2) {event['start_time']}")
+            # print(f"2) {event['start_time']}")
             end_conversion = convert_time(datetime_end)
             # event["end_time"] = str(end_conversion.isoformat()) + "Z"
             event["end_time"] = end_conversion
             if i == 0:
                 start = start_conversion
                 end = end_conversion
-                print(f"setting start: {start}")
-                print(f"setting end: {end}")
+                # print(f"setting start: {start}")
+                # print(f"setting end: {end}")
             else:
                 if start > start_conversion:
                     start = start_conversion
@@ -109,11 +111,11 @@ if __name__ == '__main__':
                     end = end_conversion
             i += 1
         
-        print(data["schedules"])
+        # print(data["schedules"])
         print(f"Start: {start.isoformat()}")
         print(f"End: {end.isoformat()}")
 
-
+        sys.exit()
 
         # print(events)
         # print(events['event_id'])
