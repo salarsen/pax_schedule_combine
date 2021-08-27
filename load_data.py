@@ -3,7 +3,7 @@ import logging, sys, json, requests
 from datetime import date, datetime
 from pytz import timezone
 from dateutil import tz
-import os
+import os, math
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -64,7 +64,8 @@ if __name__ == '__main__':
     session_requests = requests.Session()
 
     # result = session_requests.get('https://assets.paxsite.com/online/schedule-export.json?t=' + str(round(time.time())))
-    result = session_requests.get('https://api-melupufoagt.stackpathdns.com/api/schedules?key=b0a264a7-7b5e-4a55-acde-16cb630bfe6d')
+    # result = session_requests.get('https://api-melupufoagt.stackpathdns.com/api/schedules?key=b0a264a7-7b5e-4a55-acde-16cb630bfe6d') # PAX EAST Online 2021
+    result = session_requests.get('https://api-melupufoagt.stackpathdns.com/api/schedules?key=6f51c8aa-c4cd-4391-900c-ed9e1b1e6ad8') # Pax WEST 2021
 
     if result.status_code == 200:   
         
@@ -75,16 +76,25 @@ if __name__ == '__main__':
         start = datetime.now()
         end = datetime.now()
         locations = []
+        date_bounds = []
+        start_day = 0
+        start_test = datetime.now()
+        end_test = datetime.now()
 
         i = 0
+
         for event in data["schedules"]:
             if event["location"] not in locations:
                 locations.append(event["location"])
+
+            ### conversion to UTC standard time
             # print(f'{event["start_time"]} - { type(event["start_time"])}')
             datetime_start = datetime.strptime(event["start_time"],"%Y-%m-%d %H:%M:%S")
             datetime_end = datetime.strptime(event["end_time"],"%Y-%m-%d %H:%M:%S")
-            print(f"{datetime_start} to {datetime_end} = {(datetime_end - datetime_start).seconds}")
-            print(((datetime_end - datetime_start).seconds / 60)/15)
+            # print(f"{datetime_start} to {datetime_end} = {(datetime_end - datetime_start).seconds}")
+            rowCnt = math.ceil(((datetime_end - datetime_start).seconds / 60)/15)
+            event["rowCnt"] = rowCnt
+            # print(event["rowCnt"])
             # print(f"Before: {datetime_obj}")
             eastern = timezone("EST")
             # print(eastern)
@@ -99,9 +109,17 @@ if __name__ == '__main__':
             end_conversion = convert_time(datetime_end)
             # event["end_time"] = str(end_conversion.isoformat()) + "Z"
             event["end_time"] = end_conversion
+            # print(datetime_start.day)
+
+
+
+            ### this is for figuring the start and stop of events each day
             if i == 0:
                 start = start_conversion
                 end = end_conversion
+                start_test = datetime_start
+                end_test = datetime_start
+                start_day = datetime_start.day
                 # print(f"setting start: {start}")
                 # print(f"setting end: {end}")
             else:
@@ -109,13 +127,36 @@ if __name__ == '__main__':
                     start = start_conversion
                 if end < end_conversion:
                     end = end_conversion
+            if start_day != datetime_start.day:
+                date_bounds.append({'start' : start_test, 'end': end_test})
+                start_test = datetime_start
+                start_day = datetime_start.day
+            else:
+                end_test = datetime_end
+
+
             i += 1
-        
+        date_bounds.append({'start' : convert_time(start_test), 'end' : convert_time(end_test)})
+        # print(test_obj)
+        # sys.exit()
+        location_arr = []
+        for location in locations:
+            location_arr.append({ 'nickname': location, 'location': ''})
+
+        # test_array = {
+        #     "Time 1" : [{ 'location 1' : '_id1'}, {'location 2' : '_id2'}, {'location 3', '_id3'}]
+        #     "Time 2" : [                          {'location 2' : '_id2'}]
+        # }
+        # for event in data["schedules"]:
+        #     if test_obj.get(event["start"])
+
+
+        print(date_bounds)
         # print(data["schedules"])
         print(f"Start: {start.isoformat()}")
         print(f"End: {end.isoformat()}")
 
-        sys.exit()
+        # sys.exit()
 
         # print(events)
         # print(events['event_id'])
@@ -124,9 +165,6 @@ if __name__ == '__main__':
         # sys.exit()        
         event_count = 0
         mycol = mydb["shows"]
-        location_arr = []
-        for location in locations:
-            location_arr.append({ 'location': location, 'nickname': ''})
         ## set show values
         mydict = {
             'show_id' : data["event_id"],
@@ -139,10 +177,12 @@ if __name__ == '__main__':
             'end_date' : end,
             'default_timezone': fromTimezone,
             'locations': location_arr,
-            '_events' : []
+            '_events' : [],
+            'date_bounds' : date_bounds
+            # 'test_obj' : test_obj
         }
         y = mycol.insert_one(mydict)
-
+        # sys.exit()
         logging.info(y.inserted_id)
         
         ## set event values
@@ -150,6 +190,7 @@ if __name__ == '__main__':
         x = mycol.insert_many(data['schedules'])
         logging.info(x.inserted_ids)
         ## update event values with show they below too
+        test_obj = {}
         for event in x.inserted_ids:
             mycol.update_one(
                 { '_id' : event },
@@ -159,6 +200,15 @@ if __name__ == '__main__':
                     }
                 
                 })
+            item = mycol.find_one({'_id' : event})
+            start_conversion = convert_time(item["start_time"])
+
+            if test_obj.get(str(start_conversion)):
+                test_obj[str(start_conversion)].append({item["location"] : event})
+            else:
+                test_obj[str(start_conversion)] = []
+                test_obj[str(start_conversion)].append({item["location"] : event})
+
 
             
         ## update show value with all event ids
@@ -168,6 +218,7 @@ if __name__ == '__main__':
             {
                 '$set' : {
                     '_events' : x.inserted_ids,
+                    '_mapping' : test_obj
                 }
             }
         )
